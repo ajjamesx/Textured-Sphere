@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Textured Sphere</title>
+</head>
+<body>
+  <style>
+    body {
+      background-color: black;
+    }
+  </style>
+<canvas id="canvas"></canvas>
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = window.innerWidth;
+  const h = canvas.height = window.innerHeight;
+
+  const centerX = w / 2;
+  const centerY = h / 2;
+  const radius = 180;
+  const spherePoints = [];
+  const totalPoints = 7000;
+  let rotation = 0;
+
+  // Load the texture3
+  const img = new Image();
+  img.src = "https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg"; // Replace with your own texture if needed
+  img.crossOrigin = "Anonymous";
+
+  img.onload = () => {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = img.width;
+    offscreen.height = img.height;
+    const offCtx = offscreen.getContext('2d');
+    offCtx.drawImage(img, 0, 0);
+    const imgData = offCtx.getImageData(0, 0, img.width, img.height).data;
+
+    generateSphere();
+    animate();
+
+    function generateSphere() {
+      for (let i = 0; i < totalPoints; i++) {
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.sin(phi) * Math.sin(theta);
+        const z = radius * Math.cos(phi);
+
+        spherePoints.push({ x, y, z, theta, phi });
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, w, h);
+      for (let p of spherePoints) {
+  // Rotate around Y-axis
+  const cosR = Math.cos(rotation);
+  const sinR = Math.sin(rotation);
+  const x = p.x * cosR - p.z * sinR;
+  const y = p.y;
+  const z = p.x * sinR + p.z * cosR;
+
+  const scale = 0.7 + z / (2 * radius);
+  const screenX = centerX + x * scale;
+  const screenY = centerY + y * scale;
+
+  // Recalculate angles after rotation
+  const length = Math.sqrt(x * x + y * y + z * z);
+  const phi = Math.acos(z / length);
+  const theta = Math.atan2(y, x);
+
+  const u = (theta / (2 * Math.PI) + 0.5) % 1;
+  const v = phi / Math.PI;
+
+  const texX = Math.floor(u * img.width);
+  const texY = Math.floor(v * img.height);
+  const pixelIndex = (texY * img.width + texX) * 4;
+
+  const r = imgData[pixelIndex];
+  const g = imgData[pixelIndex + 1];
+  const b = imgData[pixelIndex + 2];
+
+  ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+  ctx.beginPath();
+  ctx.arc(screenX, screenY, 1.2 * scale, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
+      rotation += 0.003;
+      requestAnimationFrame(animate);
+    }
+  };
+</script>
+</body>
+</html>
